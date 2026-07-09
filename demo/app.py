@@ -1,17 +1,19 @@
-import spaces
+# import spaces
 from kokoro import KModel, KPipeline
 import gradio as gr
 import os
 import random
 import torch
 
+os.environ["PATH"] += os.pathsep + r"C:\ffmpeg\bin"
+
 CUDA_AVAILABLE = torch.cuda.is_available()
 models = {gpu: KModel().to('cuda' if gpu else 'cpu').eval() for gpu in [False] + ([True] if CUDA_AVAILABLE else [])}
-pipelines = {lang_code: KPipeline(lang_code=lang_code, model=False) for lang_code in 'ab'}
+pipelines = {lang_code: KPipeline(lang_code=lang_code, model=False) for lang_code in 'abjz'}
 pipelines['a'].g2p.lexicon.golds['kokoro'] = 'kˈOkəɹO'
 pipelines['b'].g2p.lexicon.golds['kokoro'] = 'kˈQkəɹQ'
 
-@spaces.GPU(duration=30)
+# @spaces.GPU(duration=30)
 def forward_gpu(ps, ref_s, speed):
     return models[True](ps, ref_s, speed)
 
@@ -70,18 +72,20 @@ def generate_all(text, voice='af_heart', speed=1, use_gpu=CUDA_AVAILABLE):
             first = False
             yield 24000, torch.zeros(1).numpy()
 
-with open('en.txt', 'r') as r:
+base_dir = os.path.dirname(__file__)
+
+with open(os.path.join(base_dir, 'en.txt'), 'r') as r:
     random_quotes = [line.strip() for line in r]
 
 def get_random_quote():
     return random.choice(random_quotes)
 
 def get_gatsby():
-    with open('gatsby5k.md', 'r') as r:
+    with open(os.path.join(base_dir, 'gatsby5k.md'), 'r', encoding='utf-8') as r:
         return r.read().strip()
 
 def get_frankenstein():
-    with open('frankenstein5k.md', 'r') as r:
+    with open(os.path.join(base_dir, 'frankenstein5k.md'), 'r') as r:
         return r.read().strip()
 
 CHOICES = {
@@ -113,6 +117,19 @@ CHOICES = {
 '🇬🇧 🚹 Fable': 'bm_fable',
 '🇬🇧 🚹 Lewis': 'bm_lewis',
 '🇬🇧 🚹 Daniel': 'bm_daniel',
+'JP 🚺 Alpha' : 'jf_alpha',
+'JP 🚺 Gongitsun' : 'jf_gongitsune',
+'JP 🚺 Nezumi' : 'jf_nezumi',
+'JP 🚺 Tebukuro' : 'jf_tebukuro',
+'JP 🚹 Kumo' : 'jm_kumo',
+'CN 🚺 XiaoBei' : 'zf_xiaobei',
+'CN 🚺 XiaoNi' : 'zf_xiaoni',
+'CN 🚺 XiaoXiao' : 'zf_xiaoxiao',
+'CN 🚺 XiaoYi' : 'zf_xiaoyi',
+'CN 🚹 YunJian' : 'zm_yunjian',
+'CN 🚹 YunXi' : 'zm_yunxi',
+'CN 🚹 YunXia' : 'zm_yunxia',
+'CN 🚹 YunYang' : 'zm_yunyang',
 }
 for v in CHOICES.values():
     pipelines[v[0]].load_voice(v)
